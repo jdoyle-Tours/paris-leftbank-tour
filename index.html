@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Left Bank">
+<meta name="theme-color" content="#1a1208">
+<title>The Left Bank — Paris Walking Tour</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&family=EB+Garamond:ital,wght@0,400;1,400&display=swap');
+
+:root {
+  --ink: #0e0b06;
+  --parchment: #f4edd8;
+  --warm: #ede3c8;
+  --sepia: #7a5c2e;
+  --gold: #b8892a;
+  --gold-light: #d4a94a;
+  --rouge: #7a1f1f;
+  --stone: #c8b896;
+  --muted: #8a7a62;
+  --text: #1e160a;
+  --border: #c4ad84;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%; overflow: hidden;
+  font-family: 'EB Garamond', Georgia, serif;
+  background: var(--ink);
+  color: var(--text);
+}
+
+/* ── APP SHELL ── */
+#app {
+  display: flex; flex-direction: column;
+  height: 100vh; height: 100dvh;
+  max-width: 480px; margin: 0 auto;
+  background: var(--parchment);
+  position: relative;
+}
+
+/* ── HEADER ── */
+header {
+  background: var(--ink);
+  padding: 14px 16px 10px;
+  flex-shrink: 0;
+  text-align: center;
+  border-bottom: 1px solid var(--gold);
+  position: relative;
+}
+header h1 {
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  color: var(--stone);
+  text-transform: uppercase;
+  font-weight: 400;
+}
+header .subtitle {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.68rem;
+  color: var(--gold);
+  margin-top: 3px;
+  letter-spacing: 0.12em;
+  font-style: italic;
+}
+.progress-bar {
+  height: 2px;
+  background: #2a2010;
+  margin-top: 10px;
+  border-radius: 1px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+  transition: width 0.5s ease;
+  border-radius: 1px;
+}
+
+/* ── TABS ── */
+.tabs {
+  display: flex;
+  background: #161008;
+  flex-shrink: 0;
+  border-bottom: 1px solid #2a2010;
+}
+.tab {
+  flex: 1; padding: 9px 4px;
+  text-align: center;
+  font-family: 'Cinzel', serif;
+  font-size: 0.52rem;
+  color: var(--muted);
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  user-select: none;
+}
+.tab.active {
+  color: var(--gold-light);
+  border-bottom-color: var(--gold);
+  background: #0e0b06;
+}
+.tab-icon { font-size: 0.9rem; display: block; margin-bottom: 2px; }
+
+/* ── SCREENS ── */
+.screen { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: none; }
+.screen.active { display: block; }
+
+/* ── STOP LIST ── */
+#screen-list { padding: 0 0 80px; }
+
+.list-intro {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--warm);
+}
+.list-intro h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem;
+  font-weight: 300;
+  color: var(--ink);
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+.list-intro p {
+  font-size: 0.82rem;
+  color: var(--sepia);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.stop-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+  gap: 14px;
+  background: var(--parchment);
+}
+.stop-item:active { background: var(--warm); }
+.stop-item.completed { background: #f0e8d0; }
+
+.stop-number {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  color: var(--gold);
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all 0.3s;
+}
+.stop-item.completed .stop-number {
+  background: var(--gold);
+  color: var(--ink);
+  border-color: var(--gold);
+}
+
+.stop-info { flex: 1; min-width: 0; }
+.stop-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.2;
+}
+.stop-theme {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 3px;
+  font-style: italic;
+  line-height: 1.3;
+}
+.stop-arr {
+  font-family: 'Cinzel', serif;
+  font-size: 0.55rem;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+  margin-top: 5px;
+}
+
+.stop-chevron {
+  color: var(--border);
+  font-size: 0.9rem;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+/* ── STOP DETAIL ── */
+#screen-stop { padding: 0 0 80px; }
+
+.stop-header {
+  background: var(--ink);
+  padding: 20px 18px 18px;
+  border-bottom: 2px solid var(--gold);
+}
+.stop-header-num {
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  color: var(--gold);
+  letter-spacing: 0.2em;
+  margin-bottom: 8px;
+}
+.stop-header-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.6rem;
+  font-weight: 300;
+  color: var(--parchment);
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+.stop-header-theme {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.85rem;
+  color: var(--stone);
+  font-style: italic;
+}
+
+.section-tabs {
+  display: flex;
+  background: var(--warm);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.section-tabs::-webkit-scrollbar { display: none; }
+.section-tab {
+  padding: 10px 14px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.58rem;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  letter-spacing: 0.08em;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.section-tab.active {
+  color: var(--rouge);
+  border-bottom-color: var(--rouge);
+}
+
+.section-content {
+  padding: 22px 18px;
+  font-size: 0.92rem;
+  line-height: 1.75;
+  color: var(--text);
+}
+.section-content p { margin-bottom: 1em; }
+.section-content p:last-child { margin-bottom: 0; }
+
+.stop-nav {
+  display: flex;
+  gap: 10px;
+  padding: 14px 18px;
+  background: var(--warm);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.nav-btn {
+  flex: 1; padding: 11px;
+  border: 1.5px solid var(--border);
+  background: var(--parchment);
+  color: var(--sepia);
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 2px;
+}
+.nav-btn:active { background: var(--warm); }
+.nav-btn.primary {
+  background: var(--ink);
+  color: var(--gold-light);
+  border-color: var(--gold);
+}
+.nav-btn:disabled { opacity: 0.35; cursor: default; }
+
+.mark-btn {
+  width: 100%;
+  padding: 13px;
+  background: var(--rouge);
+  color: #f0d8d0;
+  border: none;
+  font-family: 'Cinzel', serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mark-btn:active { background: #5a1515; }
+.mark-btn.done { background: #4a6640; color: #d0e8c8; }
+
+.maps-link {
+  display: block;
+  padding: 12px 18px;
+  background: var(--warm);
+  color: var(--sepia);
+  font-family: 'Cinzel', serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.maps-link:active { background: var(--border); }
+
+/* ── MAP ── */
+#screen-map { display: none; position: relative; }
+#screen-map.active { display: flex; flex-direction: column; }
+#map-container { flex: 1; }
+#map { width: 100%; height: 100%; }
+
+/* ── INFO ── */
+#screen-info { padding: 0 0 80px; }
+.info-section {
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.info-section h3 {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  color: var(--sepia);
+  margin-bottom: 10px;
+}
+.info-section p, .info-section li {
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.info-section ul { padding-left: 16px; }
+.info-tip {
+  background: var(--warm);
+  border-left: 3px solid var(--gold);
+  padding: 10px 14px;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--sepia);
+  font-style: italic;
+}
+
+/* ── BACK BUTTON ── */
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 18px;
+  background: var(--warm);
+  border-bottom: 1px solid var(--border);
+  color: var(--sepia);
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+.back-btn:active { background: var(--border); }
+
+/* ── LEAFLET OVERRIDES ── */
+.leaflet-popup-content-wrapper {
+  background: var(--ink);
+  color: var(--parchment);
+  border-radius: 3px;
+  border: 1px solid var(--gold);
+  font-family: 'Cormorant Garamond', serif;
+}
+.leaflet-popup-tip { background: var(--ink); }
+.leaflet-popup-content { margin: 10px 14px; font-size: 0.85rem; }
+.custom-marker {
+  width: 28px; height: 28px;
+  background: var(--ink);
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  color: var(--gold);
+  font-weight: 600;
+}
+.custom-marker.done {
+  background: var(--gold);
+  color: var(--ink);
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>The Left Bank</h1>
+    <div class="subtitle">Paris Walking Tour — Contrescarpe to Académie Française</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('list')"><span class="tab-icon">☰</span>Stops</div>
+    <div class="tab" onclick="showTab('stop')"><span class="tab-icon">📖</span>Read</div>
+    <div class="tab" onclick="showTab('map')"><span class="tab-icon">🗺</span>Map</div>
+    <div class="tab" onclick="showTab('info')"><span class="tab-icon">ℹ</span>Info</div>
+  </div>
+
+  <!-- STOP LIST -->
+  <div id="screen-list" class="screen active">
+    <div class="list-intro">
+      <h2>The Left Bank</h2>
+      <p>From the medieval gates of Contrescarpe to the gilded dome of the Académie Française — the walk that made French intellectual life.</p>
+    </div>
+    <div id="stop-list-items"></div>
+  </div>
+
+  <!-- STOP DETAIL -->
+  <div id="screen-stop" class="screen">
+    <button class="back-btn" onclick="showTab('list')">← Back to stops</button>
+    <div class="stop-header">
+      <div class="stop-header-num" id="detail-num"></div>
+      <div class="stop-header-name" id="detail-name"></div>
+      <div class="stop-header-theme" id="detail-theme"></div>
+    </div>
+    <div class="section-tabs" id="section-tabs"></div>
+    <div class="section-content" id="section-content"></div>
+    <a class="maps-link" id="maps-link" href="#" target="_blank">↗ Open in Apple Maps</a>
+    <div class="stop-nav">
+      <button class="nav-btn" id="btn-prev" onclick="navigateStop(-1)">← Previous</button>
+      <button class="nav-btn primary" id="btn-next" onclick="navigateStop(1)">Next →</button>
+    </div>
+    <button class="mark-btn" id="mark-btn" onclick="toggleComplete()">Mark as Visited</button>
+  </div>
+
+  <!-- MAP -->
+  <div id="screen-map" class="screen">
+    <div id="map-container"><div id="map"></div></div>
+  </div>
+
+  <!-- INFO -->
+  <div id="screen-info" class="screen">
+    <div class="info-section">
+      <h3>The Route</h3>
+      <p>The tour begins at <strong>Place de la Contrescarpe</strong> in the 5th arrondissement and follows a westward arc through the Latin Quarter, Saint-Germain-des-Prés, and the 6th, ending at the <strong>Académie Française</strong> on the quai de Conti.</p>
+      <p>Total distance: approximately 5.5km. Allow 5–7 hours with stops, reading, and café pauses. Every stop is independent — feel free to begin or end anywhere.</p>
+    </div>
+    <div class="info-section">
+      <h3>Recommended Pauses</h3>
+      <ul>
+        <li><strong>After Stop 4 (Mosque):</strong> Mint tea and a pastry at the Café de la Mosquée — one of Paris's great hidden pleasures.</li>
+        <li><strong>After Stop 8 (Luxembourg):</strong> Sit on one of the green iron chairs by the fountain for as long as you can.</li>
+        <li><strong>After Stop 10 (Café de Flore):</strong> Walk next door to Les Deux Magots and order a café crème. You are sitting where Sartre and Hemingway sat.</li>
+      </ul>
+    </div>
+    <div class="info-section">
+      <h3>Best Days</h3>
+      <p>Tuesday through Saturday. The Musée de Cluny is closed Tuesdays. Most churches open daily but quieter on weekdays. The Luxembourg Gardens open every day at dawn.</p>
+    </div>
+    <div class="info-section">
+      <h3>Practical Notes</h3>
+      <div class="info-tip">Wear your most comfortable shoes. The Left Bank is mostly flat but the stone streets are unforgiving over five hours.</div>
+      <div class="info-tip" style="margin-top:8px">This app works fully offline once loaded. No internet needed on the walk.</div>
+    </div>
+    <div class="info-section">
+      <h3>About This Tour</h3>
+      <p>12 stops. Approximately 5.5 kilometres. Covering 800 years of French intellectual, artistic, and political life from a single afternoon's walk.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const stops = [
+  {
+    num: 1,
+    name: "Place de la Contrescarpe",
+    arr: "5th arrondissement",
+    theme: "Where Paris began to become itself",
+    coords: [48.8439, 2.3511],
+    mapsUrl: "maps://?q=Place+de+la+Contrescarpe+Paris",
+    sections: [
+      {
+        label: "The Place",
+        text: `You are standing on one of the oldest inhabited corners of Paris. The Place de la Contrescarpe sits just inside what was the medieval city wall — the wall built by Philippe II Augustus in the early thirteenth century, whose line you can still trace in the curvature of the streets around you.\n\nThe name itself is a remnant of military architecture. A contrescarpe is the outer slope of a defensive ditch — the ditch that ran along the outside of a city wall. By the time the wall was demolished and the neighbourhood rebuilt, the ditch was long gone, but the name had stuck, as names do in Paris.\n\nFor centuries this was a popular and somewhat disreputable corner of the city. Rabelais, the great sixteenth-century satirist whose bawdy, encyclopaedic novels invented a new kind of French prose, lived nearby. His local tavern — the Pomme de Pin, the Pine Cone — stood on this square, and he wrote some of his most magnificent chapters in its vicinity.`
+      },
+      {
+        label: "Hemingway",
+        text: `In the twentieth century, this square acquired a different kind of fame. Ernest Hemingway and his first wife Hadley lived at 74 Rue du Cardinal Lemoine, a short walk from here, during his years as a young journalist and aspiring novelist in the early 1920s.\n\nIn A Moveable Feast — his memoir of Paris, written thirty years later but set in this exact neighbourhood — Hemingway describes the Contrescarpe with the nostalgic precision of someone who has loved a place and knows he will never live there again. He writes of the smell of the cafés in the morning, the plane trees, the particular quality of the light.\n\nThis is important: the Paris that the world fell in love with through Hemingway's writing was substantially this neighbourhood, these streets. The myth of Paris as the city where young artists come to find themselves was built partly here, on this square, in the 1920s.`
+      },
+      {
+        label: "Orientation",
+        text: `Take a moment to orient yourself before you begin walking. The street descending to your south is Rue Mouffetard — one of the oldest market streets in Paris, following the line of a Roman road. If you have not walked it yet, it is worth noting for another morning: the lower section, below Rue de l'Épée de Bois, still has the best produce market in the Latin Quarter.\n\nTo your west, the streets begin their slow descent toward the Seine. That is the direction of your walk. You are heading from the medieval city toward the classical one — from the world of Rabelais and François Villon toward the world of Molière, Voltaire, and the philosophes of the Enlightenment.\n\nThe walk will take you through approximately eight hundred years of French intellectual life in five kilometres.`
+      }
+    ]
+  },
+  {
+    num: 2,
+    name: "Rue Mouffetard",
+    arr: "5th arrondissement",
+    theme: "The oldest market street in Paris",
+    coords: [48.8421, 2.3506],
+    mapsUrl: "maps://?q=Rue+Mouffetard+Paris",
+    sections: [
+      {
+        label: "Roman Origins",
+        text: `Walk south from the Contrescarpe a short distance to the top of Rue Mouffetard. You are standing on a road that has existed, in some form, for approximately two thousand years.\n\nThe street follows the line of the Roman road that connected Lutetia — the Roman settlement that would become Paris — to Lyon and ultimately to Rome. It was one of the primary arteries of the ancient city, running south from the forum on the hill above (where the Panthéon now stands) toward the river crossing.\n\nThe Romans are gone, their forum is gone, their baths have been reduced to a ruin in a basement on the Boulevard Saint-Michel — but the road remains. Streets in old cities are extraordinarily persistent. They survive every political upheaval, every architectural transformation, every plague and revolution, simply because it is always more convenient to keep walking where people have always walked.`
+      },
+      {
+        label: "The Market",
+        text: `The lower section of the Rue Mouffetard — below the Place de la Contrescarpe, running down to the church of Saint-Médard at the bottom — has been a market street for at least seven hundred years. The stalls, the shouting vendors, the smell of cheese and roasting chicken, the argumentative negotiation over the price of a melon: all of this has been happening here, more or less continuously, since the Middle Ages.\n\nThe specific rhythm of a French market street — the sequence of shops, the particular mix of produce merchant, butcher, fishmonger, fromager, bakery — has a logic that evolved over centuries. The Mouffetard preserves it better than almost anywhere else in Paris, partly because the street is too narrow and too irregular for the kind of rational redevelopment that swept away most of old Paris in the nineteenth century.\n\nHaussmann could not get his boulevards in here. The medieval street survived by being inconvenient.`
+      },
+      {
+        label: "What to Notice",
+        text: `As you stand at the top of the street, look at the buildings. The façades are eighteenth and early nineteenth century for the most part, but the ground floors — the shop fronts, the lintels, the occasional carved decoration above a doorway — sometimes preserve much older elements.\n\nAt number 6, there is a painted sign — a faded advertisement for a wine merchant — that dates from the nineteenth century. At number 12, the carved stone above the door shows a vine and a bunch of grapes: the remnant of a shop that sold wine when Louis XIV was king.\n\nThe Rue Mouffetard rewards slow walking and upward glancing. Most of the visual interest is above eye level, preserved by the simple fact that nobody has bothered to scrape it off.`
+      }
+    ]
+  },
+  {
+    num: 3,
+    name: "Église Saint-Étienne-du-Mont",
+    arr: "5th arrondissement",
+    theme: "The church that Gothic and Renaissance share",
+    coords: [48.8462, 2.3463],
+    mapsUrl: "maps://?q=Église+Saint-Étienne-du-Mont+Paris",
+    sections: [
+      {
+        label: "The Building",
+        text: `Walk up the hill from the Contrescarpe toward the Panthéon and you will find, tucked behind it on the Place Sainte-Geneviève, one of the most idiosyncratic and beautiful churches in Paris.\n\nSaint-Étienne-du-Mont was built between roughly 1494 and 1626 — a period of over a century during which French architecture moved from Gothic to Renaissance. The result is a building that cannot quite make up its mind, and is magnificent for it. The nave is Gothic in structure, with flying buttresses and pointed arches, but the decoration is Renaissance: pilasters, classical cornices, and the extraordinary rood screen that crosses the nave.\n\nThat rood screen — the jubé — is the only surviving example in Paris. Every other church had theirs demolished in the eighteenth century, when the fashion for visual unity swept them away as medieval clutter. The jubé at Saint-Étienne is an elaborate carved arch connecting two staircases in a spiral, dating from around 1530 and of staggering technical virtuosity.`
+      },
+      {
+        label: "The Relics",
+        text: `The church contains the shrine of Sainte Geneviève, the patron saint of Paris — a fifth-century Frankish woman whose prayers, according to tradition, turned Attila the Hun away from the city in 451.\n\nThe actual bones of Geneviève were destroyed during the Revolution by a mob that considered saints' relics to be superstitious royalist nonsense. What remains in the church is a gilded reliquary containing a fragment of her stone sarcophagus — the container rather than the contents. Parisians pray to it anyway. The relationship between Parisians and their saints has always been pragmatic.\n\nAlso buried here: Blaise Pascal, the mathematician and theologian whose Pensées remain one of the most searching explorations of religious doubt in the French language. And Jean Racine, the greatest tragedian of the seventeenth century. They lie beneath your feet as you look at the jubé.`
+      },
+      {
+        label: "Midnight in Paris",
+        text: `A brief contemporary note: Woody Allen filmed the opening scenes of Midnight in Paris at the steps of this church, just outside the door you entered. The film — about a man who walks alone at night and finds himself transported to 1920s Paris — uses the church as the entry point for its time-travel fantasy.\n\nIt is a good instinct. There is something genuinely disorienting about Saint-Étienne. The mixture of architectural periods, the dim light, the sudden silence after the street noise, the sense of time layered on time — it produces in the attentive visitor a mild but real experience of temporal vertigo.\n\nYou are standing in a building where people have prayed continuously since 1222. That is a long time to stand in one place.`
+      }
+    ]
+  },
+  {
+    num: 4,
+    name: "Grande Mosquée de Paris",
+    arr: "5th arrondissement",
+    theme: "Islam and France on the edge of the Latin Quarter",
+    coords: [48.8422, 2.3533],
+    mapsUrl: "maps://?q=Grande+Mosquée+de+Paris",
+    sections: [
+      {
+        label: "The Building",
+        text: `The Grande Mosquée de Paris is one of the most surprising buildings in the city — not because it exists, exactly, but because of where it exists and what it looks like.\n\nBuilt between 1922 and 1926, the mosque was constructed by the French state as a gesture of gratitude and acknowledgment toward the Muslim soldiers of North Africa who had fought and died in enormous numbers for France during the First World War. Approximately 600,000 soldiers from Algeria, Morocco, and Tunisia served in the French army; some 100,000 of them were killed. The mosque was the official recognition of that sacrifice.\n\nThe architecture is Moorish, based on the great mosques of Morocco — particularly the Andalusian-influenced style of Fez. The minaret is modelled on that of the Koutoubia Mosque in Marrakech. The courtyard, with its carved plasterwork and glazed tilework, its fountains and its silence, is one of the genuinely transporting spaces in Paris.`
+      },
+      {
+        label: "The Café",
+        text: `Just inside the mosque entrance, accessible without entering the prayer hall, is the Café de la Mosquée. It occupies a tiled room opening onto the courtyard garden, and serves mint tea, North African pastries — particularly the gazelle horn cookies and the honey-soaked baklava — and small glasses of strong coffee.\n\nIf you do one thing at this stop, it is this: sit in the café, order a pot of mint tea, and eat something sweet. The combination of the tiled surfaces, the smell of orange blossom, and the sound of water from the courtyard fountain produces an effect that is entirely unlike anything else in Paris.\n\nThis is perhaps the most genuinely peaceful thirty minutes available to you on the Left Bank. The café is used by everyone: neighbourhood residents, university students, tourists who have stumbled in, elderly Algerian men reading newspapers. It is a remarkably democratic space.`
+      },
+      {
+        label: "Context",
+        text: `The mosque sits between the Jardin des Plantes — the great botanical garden established by Louis XIII — and the Rue Mouffetard neighbourhood. This corner of the 5th arrondissement has been, at various points in its history, a Roman arena (the Arènes de Lutèce are a short walk east), a medieval hospital, a natural history museum, and now a mosque and garden.\n\nThe diversity of the present neighbourhood — North African, West African, Eastern European, French — is not new. Paris has always absorbed its migrants into particular quartiers, and those quartiers have always shaped the character of the city in turn.\n\nThe couscous restaurants on the streets around the mosque, the Arabic-language bookshops, the halal butchers alongside the traditional French boulangeries: this mixture is not a disruption of some older, purer Paris. It is simply the latest chapter in a very long story of the city absorbing the world.`
+      }
+    ]
+  },
+  {
+    num: 5,
+    name: "Musée de Cluny",
+    arr: "5th arrondissement",
+    theme: "The Middle Ages beneath the city",
+    coords: [48.8502, 2.3441],
+    mapsUrl: "maps://?q=Musée+de+Cluny+Paris",
+    sections: [
+      {
+        label: "The Site",
+        text: `The Musée de Cluny occupies one of the most extraordinary sites in Paris: a medieval mansion built directly on top of Roman baths. The baths — the Thermes de Cluny — were constructed in the first or second century AD and represent some of the best-preserved Roman structures in France north of Provence.\n\nThe frigidarium, the cold room of the baths, survives nearly complete: a vaulted space approximately twenty metres high, with the stone vaulting supported by carved stone corbels in the shape of ships' prows — an allusion to the guild of boatmen, the nautes, who are believed to have financed the construction.\n\nAbove these Roman foundations, in the fifteenth century, the abbots of Cluny built their Paris residence — a Gothic mansion of considerable elegance, with a courtyard, chapel, and the distinctive round tower that you can see from the Boulevard Saint-Michel. The juxtaposition is not accidental: medieval builders in Paris were constantly using Roman structures as foundations, quarries, or simply as convenient pre-existing basements.`
+      },
+      {
+        label: "The Lady and the Unicorn",
+        text: `The museum's most important possession is a series of six tapestries known as La Dame à la licorne — The Lady and the Unicorn — dating from around 1500 and considered among the greatest works of art produced in the Middle Ages.\n\nThe tapestries depict a noble lady, a lion, and a unicorn in five compositions representing the five senses — sight, hearing, smell, taste, touch — and a sixth, enigmatic panel whose inscription reads À mon seul désir: to my only desire. What that desire is, the tapestries decline to explain. The question has occupied art historians for two hundred years.\n\nThey are displayed in a circular room designed specifically for them, in near-darkness to preserve the dyes. Standing in that room is one of the genuine aesthetic experiences available in Paris. The tapestries are vast, intricately detailed, and produce in the viewer a sensation of being surrounded by a vision of a world that no longer exists — a world of allegory and symbolism and the assumption that the physical could always point toward the spiritual.`
+      },
+      {
+        label: "What Else to See",
+        text: `If your time is limited, prioritize the tapestries and the frigidarium. Both are irreplaceable.\n\nIf you have longer, the collection includes extraordinary medieval goldsmithery, illuminated manuscripts, Romanesque sculpture, and the carved heads of the Kings of Judah from Notre-Dame de Paris — decapitated during the Revolution by a crowd that mistook them for kings of France, rediscovered in a basement in 1977, and now displayed at eye level so you can look at them properly for the first time in eight hundred years.\n\nThere is something quietly moving about those heads. They were carved to be seen from far below, on the west façade of the cathedral, at a scale and height that made individual features irrelevant. Seen up close, they are remarkably human — specific faces, specific expressions, individual in a way that the sculptors presumably never intended to be visible.`
+      }
+    ]
+  },
+  {
+    num: 6,
+    name: "Boulevard Saint-Michel & the Latin Quarter",
+    arr: "5th arrondissement",
+    theme: "The idea of the student city",
+    coords: [48.8523, 2.3442],
+    mapsUrl: "maps://?q=Boulevard+Saint-Michel+Paris",
+    sections: [
+      {
+        label: "The Boulevard",
+        text: `The Boulevard Saint-Michel was cut through the Latin Quarter by Haussmann in the 1860s, as part of the great transformation of Paris ordered by Napoleon III. The medieval street pattern it replaced was a warren of narrow lanes — densely populated, poorly ventilated, repeatedly the site of insurrections that the government found impossible to suppress because the streets were too narrow for cavalry charges.\n\nHaussmann's solution was the grand boulevard: wide enough for artillery, lined with the uniform stone buildings that now define the Haussmann aesthetic. The Boulevard Saint-Michel was deliberately routed to pass directly through the university district — partly to open it up to surveillance, partly to give the students a place to parade and be seen that was more legible than the old labyrinth.\n\nThe irony is that it worked, and then it failed completely. The Boulevard Saint-Michel became the spine of student life in Paris — and then in May 1968, it became the site of the most sustained street fighting between students and police since the Commune. Wide boulevards, it turned out, could be barricaded too.`
+      },
+      {
+        label: "May 1968",
+        text: `In May 1968, this boulevard was the epicentre of what began as a student revolt and rapidly became something that threatened to bring down the Fifth Republic.\n\nThe immediate cause was relatively trivial — a dispute about university reform and the closure of the Nanterre campus. The deeper causes were generational: a Europe-wide revolt against authority, against the inherited certainties of the postwar order, against a social conservatism that the baby boom generation found suffocating.\n\nOn the night of May 10th — the Night of the Barricades — students tore up the paving stones of the Boulevard Saint-Michel and the surrounding streets, built barricades, and held off the riot police until dawn. The images — the burning cars, the students with scarves around their faces, the CRS in their black helmets — became the defining images of a generation.\n\nGaulle initially fled to a military base in Germany. The trade unions called a general strike. For ten days in May, the government genuinely did not know if it would survive. It did survive, but France was not the same afterwards.`
+      },
+      {
+        label: "Today",
+        text: `The Latin Quarter today is substantially a tourist district — the bookshops are mostly tourist bookshops, the restaurants are mostly tourist restaurants, the students who live here are vastly outnumbered by the visitors who come to see the idea of where students live.\n\nThis is not entirely a loss. The Sorbonne remains an active university. The École Normale Supérieure, a few streets away, still produces more French intellectuals per square metre than anywhere else on earth. The libraries are full. The cafés still fill with people arguing about ideas, or at least performing the argument about ideas, which in Paris amounts to nearly the same thing.\n\nBut the living city has moved. The working-class life that once filled these streets has been priced out. What remains is the image of the Latin Quarter — which is itself, by now, a kind of historical document. You are walking through a neighbourhood that has been mythologised for so long that the myth has become part of the place.`
+      }
+    ]
+  },
+  {
+    num: 7,
+    name: "Église Saint-Séverin",
+    arr: "5th arrondissement",
+    theme: "The strangest Gothic interior in Paris",
+    coords: [48.8521, 2.3449],
+    mapsUrl: "maps://?q=Église+Saint-Séverin+Paris",
+    sections: [
+      {
+        label: "The Building",
+        text: `Turn off the Boulevard Saint-Michel onto the Rue Saint-Séverin and you will find yourself in one of the oldest streets in Paris — a narrow medieval lane that opens suddenly onto the side of a church that looks, from the outside, unremarkable.\n\nGo inside.\n\nSaint-Séverin dates from the thirteenth century but was substantially rebuilt in the fifteenth, and its interior is among the most unusual Gothic spaces in France. The nave is conventional enough: pointed arches, ribbed vaulting, clerestory windows. But the ambulatory — the walkway that runs around the back of the choir — contains something extraordinary.\n\nThe columns of the ambulatory are twisted. Not carved to look twisted, but structurally twisted — the stone spiralling as it rises, like the strand of a rope frozen in stone. This technique, called columns torses, appears elsewhere in Gothic architecture but rarely with this insistence. There are seven of them here, each slightly different, creating an effect that is simultaneously organic and mathematical — like walking through a petrified forest.`
+      },
+      {
+        label: "The Stained Glass",
+        text: `The stained glass of Saint-Séverin spans several centuries and several styles. The oldest windows, in the choir, date from the fifteenth century and show the characteristic pot-metal colours of medieval glasswork — deep ruby, cobalt, acid green — arranged in narrative scenes whose details have been worn by time into a pleasing ambiguity.\n\nBut the most striking windows are modern. In 1966, the painter Jean Bazaine was commissioned to design new windows for the ambulatory. The result is a set of abstract compositions in intense, saturated colour — not illustrative in the traditional sense, but responsive to the theological ideas associated with each position in the church.\n\nThe combination of medieval and modern glass is unusually successful. The medieval windows tell stories; the Bazaine windows create atmosphere. Together they produce a range of light that moves through the church differently at different times of day — a reminder that Gothic architecture was fundamentally an architecture of light, and that the walls were merely the frame for the windows.`
+      },
+      {
+        label: "The Neighbourhood",
+        text: `The streets around Saint-Séverin — the Rue de la Huchette, the Rue Xavier Privas, the Rue du Chat qui Pêche — are the most medieval in Paris in their street plan, even if the buildings themselves are largely of later construction.\n\nThe Rue du Chat qui Pêche — the Street of the Cat Who Fishes — is approximately two metres wide and has been approximately two metres wide since the thirteenth century. It is probably the narrowest street in Paris. At midday in summer, standing in it, you are in shadow.\n\nThe area around Saint-Séverin was, in the Middle Ages, the booksellers' quarter — a concentration of scribes, illuminators, and sellers of manuscripts clustered near the university that needed their products. The invention of printing in the fifteenth century transformed but did not destroy the book trade here; the Rue de la Huchette had print shops well into the twentieth century. The Shakespeare and Company bookshop, just across the river, is the last remnant of that very long tradition.`
+      }
+    ]
+  },
+  {
+    num: 8,
+    name: "Jardin du Luxembourg",
+    arr: "6th arrondissement",
+    theme: "The garden that belongs to everyone",
+    coords: [48.8462, 2.3372],
+    mapsUrl: "maps://?q=Jardin+du+Luxembourg+Paris",
+    sections: [
+      {
+        label: "The Garden",
+        text: `The Luxembourg Gardens were created in the early seventeenth century by Marie de Médicis, the widow of Henri IV, who missed the gardens of Florence and commissioned a palace and park that would remind her of the Palazzo Pitti and the Boboli Gardens.\n\nThe palace — the Palais du Luxembourg — now houses the French Senate. The garden is one of the great public spaces of Paris: twenty-three hectares of formal French geometry (the central parterre, the straight allées, the symmetrical fountains) combined with a series of less formal planted areas, an orchard, a beehive colony, and a puppet theatre that has been performing for children on Sunday afternoons for over a century.\n\nThe garden is above all a place of use. Parisians use it for everything: jogging, reading, sitting in the green iron chairs by the Medici Fountain, playing pétanque, sailing model boats on the octagonal pond, eating a sandwich on a bench, doing nothing in particular. It is one of the most democratic spaces in a city that has a complex relationship with democratic space.`
+      },
+      {
+        label: "The Medici Fountain",
+        text: `In the northeast corner of the garden, behind the palace, is the Medici Fountain — a long, narrow ornamental pond reflecting a grotto architecture at one end, with a sculptural group depicting the cyclops Polyphemus discovering the lovers Acis and Galatea.\n\nThe fountain was designed in 1630, possibly by Salomon de Brosse, and reworked in the nineteenth century when Haussmann's rue de Médicis cut through the original garden and required the fountain to be moved and redesigned. The long canal that precedes the grotto was added at that time.\n\nThe Medici Fountain is one of the best places to sit in Paris. The plane trees on either side create a green tunnel in summer; the water reflects the sky; the stone is cold and old and covered in moss. Couples sit along the edge of the canal, arguing or not arguing, reading or not reading. It is a place that rewards the willingness to do nothing in particular for a period of time.`
+      },
+      {
+        label: "The Writers",
+        text: `The Luxembourg Gardens have been the outdoor office of French literature for four hundred years.\n\nFlaubert walked here while he was writing Madame Bovary. Baudelaire walked here while he was writing Les Fleurs du Mal. Verlaine brought Rimbaud here — the relationship between those two poets, sixteen years apart in age, was conducted partly in these gardens and ended, as their whole relationship ended, in violence and recrimination.\n\nIn the 1920s, Hemingway walked here with his son. He describes, in A Moveable Feast, catching pigeons in the garden to supplement his food budget during the years when he and Hadley were genuinely poor. The pigeons were caught under a hat, as he tells it. Hemingway was a man who understood the uses of a garden.\n\nSit for a while in the green iron chair. You are in very good company.`
+      }
+    ]
+  },
+  {
+    num: 9,
+    name: "Église Saint-Sulpice",
+    arr: "6th arrondissement",
+    theme: "The church that contains a mystery and a Delacroix",
+    coords: [48.8510, 2.3349],
+    mapsUrl: "maps://?q=Église+Saint-Sulpice+Paris",
+    sections: [
+      {
+        label: "The Building",
+        text: `Saint-Sulpice is the second largest church in Paris after Notre-Dame, and arguably its most architecturally peculiar. The west façade — the face it presents to the Place Saint-Sulpice — was designed in the eighteenth century by Giovanni Niccolò Servandoni and is a double colonnade of classical columns that looks more like a Roman civic building than a Christian church.\n\nThe two towers flanking the façade were never completed to their intended design. The south tower is higher than the north; the north tower was left, at some point in the nineteenth century, without its intended crown. The asymmetry has bothered architectural critics ever since. The Parisians, with their usual pragmatism, have stopped noticing it.\n\nInside, the church is very large, very cold, and somewhat austere. It was extensively redecorated in the nineteenth century in a neoclassical style that is impressive in scale and somewhat chilly in feeling. But there is one chapel — the first to the right of the entrance — that you must see.`
+      },
+      {
+        label: "The Delacroix",
+        text: `The Chapel of the Holy Angels contains three large paintings by Eugène Delacroix, executed between 1855 and 1861 — among the last and finest works of the greatest French Romantic painter.\n\nOn the left wall: Heliodorus Driven from the Temple, showing an angel on horseback driving the would-be thief from the temple in Jerusalem. On the right wall: Jacob Wrestling with the Angel — a twilit landscape in which a human figure struggles with a being of ambiguous physicality, neither clearly winning. On the ceiling: Michael Vanquishing the Demon.\n\nThe Jacob painting is perhaps the most moving. It is a nocturne — the landscape in deep shadow, the two figures locked in an embrace that reads as much like tenderness as combat. Delacroix was not a conventionally religious man; he painted the scene as a confrontation between the human and the transcendent, in which the outcome is not victory but transformation. Jacob walks away from the encounter with a permanent limp — wounded by the encounter with the divine, but also blessed by it.\n\nDelacroix died before he could see the chapel finished. A cast of his death mask is kept in the museum dedicated to him, a few streets away.`
+      },
+      {
+        label: "The Gnomon",
+        text: `Saint-Sulpice was the site of a seventeenth-century scientific instrument of considerable ingenuity: a gnomon, or meridian line, built in 1727 by the English clockmaker Henry Sully to allow accurate astronomical observations.\n\nThe gnomon consists of a brass strip set into the floor of the transept, running north-south, with an obelisk at the north end and a small oval hole in a south window through which sunlight falls onto the floor. At solar noon on the winter solstice, the spot of light falls on the obelisk; at solar noon on the equinoxes, it falls on a specific mark on the floor. The instrument allowed the accurate calculation of Easter and the correction of the liturgical calendar.\n\nThe Da Vinci Code, Dan Brown's novel, transformed this entirely rational astronomical instrument into a mystical device associated with the Priory of Sion and various other inventions. The church now has a sign explicitly debunking the connection. It is perhaps the only church in the world with an anti-Dan-Brown notice posted in its nave.`
+      }
+    ]
+  },
+  {
+    num: 10,
+    name: "Café de Flore & Les Deux Magots",
+    arr: "6th arrondissement",
+    theme: "The postwar intellectual café as institution",
+    coords: [48.8540, 2.3330],
+    mapsUrl: "maps://?q=Café+de+Flore+Paris",
+    sections: [
+      {
+        label: "The Place",
+        text: `The intersection of the Boulevard Saint-Germain and the Rue de Rennes is one of the most famous crossroads in French intellectual history. The Café de Flore is on your left; Les Deux Magots is next door on the corner. The church of Saint-Germain-des-Prés — the oldest in Paris — is across the street.\n\nBoth cafés have been here, in various configurations, since the nineteenth century. The Flore was a café of modest literary reputation until the 1940s, when Jean-Paul Sartre and Simone de Beauvoir began using it as their working space during the German Occupation. The cafés were heated; their apartments were not. Sartre wrote L'Être et le Néant — Being and Nothingness, the foundational text of French existentialism — largely at a table in the Café de Flore.\n\nAfter the Liberation, Saint-Germain-des-Prés became the centre of Parisian intellectual and artistic life for approximately twenty years. The cafés were where you went to be seen, to argue, to find a publisher, to have an affair, to discuss Hegel, to drink too much, to be young and clever in a city that rewarded being young and clever.`
+      },
+      {
+        label: "Existentialism",
+        text: `The philosophy associated with Saint-Germain-des-Prés — existentialism, in its French literary form — is worth understanding if you are going to sit in these cafés with any sense of context.\n\nSartre's central claim was that existence precedes essence: that there is no predetermined human nature, no God-given purpose, no fixed identity that you are born into. You are nothing except what you make of yourself through your choices. This is simultaneously liberating and terrifying — liberating because it means you are free, terrifying because it means you have no excuses.\n\nSimone de Beauvoir applied the same framework to the situation of women in The Second Sex (1949): women are not born feminine, they are made feminine by a society that assigns them a fixed essence and then blames them for embodying it. The book effectively founded modern feminist philosophy and was written, in considerable part, at these tables.\n\nThe existentialists drank heavily, smoked constantly, argued about everything, and had complicated relationships with each other that they all subsequently wrote books about. They were, in other words, very much creatures of their time and place.`
+      },
+      {
+        label: "Now",
+        text: `The Café de Flore and Les Deux Magots are now among the most expensive cafés in Paris and among the most visited. A café crème at Les Deux Magots costs approximately what Sartre earned in a week as a young lycée teacher.\n\nAnd yet they retain something. The Flore in particular — with its red banquettes, its small round tables, its mirrors and dark wood — looks substantially as it did in the 1940s. The density of the seating, the particular angle of the light in the afternoon, the sound of the traffic from the boulevard: these things persist.\n\nThe right approach is to order something, sit for as long as you like, and accept that you are participating in a performance of Parisian intellectual café life that is self-aware and somewhat theatrical and also, simultaneously, the real thing. Paris has always been aware that it is Paris. This does not make it less Paris.`
+      }
+    ]
+  },
+  {
+    num: 11,
+    name: "Église Saint-Germain-des-Prés",
+    arr: "6th arrondissement",
+    theme: "The oldest church in Paris",
+    coords: [48.8543, 2.3330],
+    mapsUrl: "maps://?q=Église+Saint-Germain-des-Prés+Paris",
+    sections: [
+      {
+        label: "The History",
+        text: `The church of Saint-Germain-des-Prés is the oldest surviving church in Paris. The present building dates substantially from the eleventh century — the tower is Romanesque, built around 1000 AD — though there has been a church on this site since the sixth century, when the Frankish king Childebert I built an abbey here outside the walls of the city.\n\nThe name means Saint-Germain-in-the-Fields: des prés, of the meadows. When the abbey was founded, this was outside Paris, surrounded by farmland. The city grew around it over the following centuries until the abbey found itself at the heart of the city it had once overlooked from a distance.\n\nThe abbey was one of the great intellectual centres of medieval France. Its scriptorium produced illuminated manuscripts; its library was among the finest in Europe; its scholars included Dom Jean Mabillon, who in the seventeenth century essentially invented the discipline of historical document analysis — the critical examination of sources — that underpins all modern historical scholarship.`
+      },
+      {
+        label: "The Interior",
+        text: `The interior of Saint-Germain was heavily redecorated in the nineteenth century by the painter Hippolyte Flandrin, who covered the nave walls with a cycle of murals depicting scenes from the Old and New Testaments in a Nazarene style influenced by Fra Angelico and early Italian Renaissance painting.\n\nThe colours are vivid: ultramarine, ochre, terracotta, deep green. The effect is something between a Byzantine church and a nineteenth-century reconstruction of one — beautiful in its way, slightly false in another way, and utterly characteristic of the Second Empire's relationship with the Middle Ages, which was one of romantic enthusiasm and historical imprecision.\n\nThe choir, by contrast, is genuinely ancient. The capitals of the columns in the choir are Romanesque — eleventh and twelfth century — and show the characteristic flat, almost abstract animal and plant forms of that period. They were painted in vivid colours originally; traces remain.`
+      },
+      {
+        label: "The Burials",
+        text: `Saint-Germain-des-Prés contains, among others, the tomb of René Descartes — or rather, most of Descartes.\n\nDescartes died in Stockholm in 1650, having accepted Queen Christina of Sweden's invitation to come and teach her philosophy. He died of pneumonia, possibly aggravated by the requirement to give lessons at five in the morning in an unheated room in a Swedish winter. His body was brought back to France sixteen years later.\n\nIn transit, his skull was separated from his skeleton by someone who wanted a souvenir — a practice not unusual at the time for famous corpses. The skull passed through several hands over the following centuries, was displayed in a Paris museum, and now resides in the Musée de l'Homme. The rest of Descartes is here, in a red marble sarcophagus in the chapel of Saint-Benoît.\n\nThe man who asked of everything 'but can I be certain this is true?' lies in pieces across two institutions. There is something faintly appropriate about this.`
+      }
+    ]
+  },
+  {
+    num: 12,
+    name: "Académie Française",
+    arr: "6th arrondissement",
+    theme: "The institution that guards the French language",
+    coords: [48.8556, 2.3365],
+    mapsUrl: "maps://?q=Académie+Française+Paris",
+    sections: [
+      {
+        label: "The Institution",
+        text: `You have arrived at the end of your walk. The building facing you across the Seine — the domed structure on the Quai de Conti — is the Institut de France, which houses five academies of which the most famous is the Académie Française.\n\nThe Académie Française was founded in 1635 by Cardinal Richelieu, who was simultaneously the most powerful minister in France and a man with strong opinions about language. Its founding purpose was — and remains — to establish the rules of correct French: to produce and maintain the official dictionary, to rule on questions of grammar and vocabulary, and to resist the contamination of French by foreign words.\n\nIt has forty members, known as the Immortels — the Immortals — elected for life by their fellow members. The waiting list is long. Membership requires not just literary distinction but the correct combination of distinction and acceptability to the existing members, which means that for most of the Académie's history, membership has been predominantly male, predominantly conservative, and predominantly Parisian.`
+      },
+      {
+        label: "The Language Wars",
+        text: `The Académie Française's most visible role in contemporary France is its resistance to English loanwords — what the French call franglais.\n\nThe Académie has ruled, at various times, that computer should be ordinateur, email should be courriel, hashtag should be mot-dièse, weekend should be fin de semaine. Most of these rulings are observed by government ministries and ignored by everyone else. The French continue to say le weekend, le camping, le parking, and le smartphone with the complete lack of self-consciousness of people who do not read official linguistic rulings.\n\nThis gap between the Académie's authority and the actual behaviour of French speakers is itself revealing. The French have an unusually strong institutional investment in their language — the idea that French is a precise, logical, and beautiful language that rewards careful maintenance is a central part of French cultural identity. The Académie embodies that investment. That the language goes its own way regardless is simply how languages work.\n\nThe dictionary, when it eventually appears — the current edition has been in preparation for several decades — will be a monument to an idea of French that French people aspire to and cheerfully fail to practice.`
+      },
+      {
+        label: "The Building & the View",
+        text: `The building you are facing was originally the Collège des Quatre-Nations, founded by Mazarin — Richelieu's successor as the great minister of France — in 1661, to educate young men from the four territories newly incorporated into France.\n\nThe dome, designed by Louis Le Vau, was one of the first in Paris — it predates the Invalides and the Panthéon — and remains one of the most elegant. It sits above the Seine with a particular rightness, as though it had always been there and the river had arranged itself around it.\n\nStand on the Pont des Arts — the bridge to your left — and look back at it. Then look right, toward the Île de la Cité and the towers of Notre-Dame rising behind the Île Saint-Louis. Then look at the Louvre stretching along the Right Bank.\n\nThis is the view that has convinced people, for four hundred years, that Paris is the most beautiful city in the world. You have just walked from the medieval gate to this quayside. You have done it properly. That is worth something.`
+      }
+    ]
+  }
+];
+
+// State
+let currentStop = 0;
+let currentSection = 0;
+let completed = new Set(JSON.parse(localStorage.getItem('lb_completed') || '[]'));
+let mapInitialized = false;
+let map, markers = [];
+
+// Save progress
+function saveProgress() {
+  localStorage.setItem('lb_completed', JSON.stringify([...completed]));
+  updateProgress();
+}
+
+function updateProgress() {
+  const pct = (completed.size / stops.length) * 100;
+  document.getElementById('progress').style.width = pct + '%';
+}
+
+// Render stop list
+function renderList() {
+  const container = document.getElementById('stop-list-items');
+  container.innerHTML = stops.map(s => `
+    <div class="stop-item ${completed.has(s.num) ? 'completed' : ''}" onclick="openStop(${s.num - 1})">
+      <div class="stop-number">${completed.has(s.num) ? '✓' : s.num}</div>
+      <div class="stop-info">
+        <div class="stop-name">${s.name}</div>
+        <div class="stop-theme">${s.theme}</div>
+        <div class="stop-arr">${s.arr}</div>
+      </div>
+      <div class="stop-chevron">›</div>
+    </div>
+  `).join('');
+}
+
+// Open a stop
+function openStop(idx) {
+  currentStop = idx;
+  currentSection = 0;
+  renderStop();
+  showTab('stop');
+}
+
+function renderStop() {
+  const s = stops[currentStop];
+  document.getElementById('detail-num').textContent = `Stop ${s.num} of ${stops.length}`;
+  document.getElementById('detail-name').textContent = s.name;
+  document.getElementById('detail-theme').textContent = s.theme;
+
+  // Section tabs
+  document.getElementById('section-tabs').innerHTML = s.sections.map((sec, i) => `
+    <div class="section-tab ${i === currentSection ? 'active' : ''}" onclick="showSection(${i})">${sec.label}</div>
+  `).join('');
+
+  // Content
+  renderSection();
+
+  // Maps link
+  document.getElementById('maps-link').href = s.mapsUrl;
+
+  // Nav buttons
+  document.getElementById('btn-prev').disabled = currentStop === 0;
+  document.getElementById('btn-next').disabled = currentStop === stops.length - 1;
+  document.getElementById('btn-next').textContent = currentStop === stops.length - 1 ? 'Final Stop' : 'Next →';
+
+  // Mark button
+  const btn = document.getElementById('mark-btn');
+  if (completed.has(s.num)) {
+    btn.textContent = '✓ Visited';
+    btn.className = 'mark-btn done';
+  } else {
+    btn.textContent = 'Mark as Visited';
+    btn.className = 'mark-btn';
+  }
+}
+
+function showSection(idx) {
+  currentSection = idx;
+  document.querySelectorAll('.section-tab').forEach((t, i) => {
+    t.classList.toggle('active', i === idx);
+  });
+  renderSection();
+}
+
+function renderSection() {
+  const s = stops[currentStop];
+  const sec = s.sections[currentSection];
+  const paragraphs = sec.text.split('\n\n').map(p => `<p>${p.trim()}</p>`).join('');
+  document.getElementById('section-content').innerHTML = paragraphs;
+  document.getElementById('screen-stop').scrollTop = 0;
+}
+
+function navigateStop(dir) {
+  const newIdx = currentStop + dir;
+  if (newIdx >= 0 && newIdx < stops.length) {
+    currentStop = newIdx;
+    currentSection = 0;
+    renderStop();
+    document.getElementById('screen-stop').scrollTop = 0;
+  }
+}
+
+function toggleComplete() {
+  const s = stops[currentStop];
+  if (completed.has(s.num)) {
+    completed.delete(s.num);
+  } else {
+    completed.add(s.num);
+  }
+  saveProgress();
+  renderList();
+  renderStop();
+  if (mapInitialized) updateMarkers();
+}
+
+// Tab switching
+function showTab(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  const tabs = ['list', 'stop', 'map', 'info'];
+  const idx = tabs.indexOf(name);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+
+  if (name === 'map') initMap();
+}
+
+// Map
+function initMap() {
+  if (mapInitialized) return;
+  mapInitialized = true;
+
+  const mapEl = document.getElementById('map');
+  mapEl.style.height = (window.innerHeight - 120) + 'px';
+
+  map = L.map('map', { zoomControl: true }).setView([48.8505, 2.343], 14);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '©OpenStreetMap ©Carto',
+    maxZoom: 19
+  }).addTo(map);
+
+  // Draw route
+  const routeCoords = stops.map(s => s.coords);
+  L.polyline(routeCoords, { color: '#b8892a', weight: 2, opacity: 0.7, dashArray: '6,4' }).addTo(map);
+
+  // Add markers
+  stops.forEach((s, idx) => {
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="custom-marker ${completed.has(s.num) ? 'done' : ''}">${completed.has(s.num) ? '✓' : s.num}</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+    const marker = L.marker(s.coords, { icon })
+      .addTo(map)
+      .bindPopup(`<strong>${s.name}</strong><br><em>${s.theme}</em>`);
+    marker.on('click', () => openStop(idx));
+    markers.push(marker);
+  });
+}
+
+function updateMarkers() {
+  stops.forEach((s, idx) => {
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="custom-marker ${completed.has(s.num) ? 'done' : ''}">${completed.has(s.num) ? '✓' : s.num}</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+    markers[idx].setIcon(icon);
+  });
+}
+
+// Init
+renderList();
+updateProgress();
+</script>
+</body>
+</html>
