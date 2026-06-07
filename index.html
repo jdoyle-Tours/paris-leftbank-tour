@@ -438,7 +438,8 @@ header .subtitle {
     </div>
     <div class="section-tabs" id="section-tabs"></div>
     <div class="section-content" id="section-content"></div>
-    <a class="maps-link" id="maps-link" href="#" target="_blank">↗ Open in Apple Maps</a>
+    <a class="maps-link" id="maps-link" href="#">🚶 Walking Directions to This Stop</a>
+    <a class="maps-link" id="maps-link-next" href="#" style="border-top:1px solid var(--border); color: var(--gold);">→ Directions to Next Stop</a>
     <div class="stop-nav">
       <button class="nav-btn" id="btn-prev" onclick="navigateStop(-1)">← Previous</button>
       <button class="nav-btn primary" id="btn-next" onclick="navigateStop(1)">Next →</button>
@@ -491,7 +492,7 @@ const stops = [
     arr: "5th arrondissement",
     theme: "Where Paris began to become itself",
     coords: [48.8439, 2.3511],
-    mapsUrl: "maps://?q=Place+de+la+Contrescarpe+Paris",
+    mapsUrl: "maps://?saddr=Current+Location&daddr=48.8439,2.3511&dirflg=w",
     sections: [
       {
         label: "The Place",
@@ -513,7 +514,7 @@ const stops = [
     arr: "5th arrondissement",
     theme: "The oldest market street in Paris",
     coords: [48.8421, 2.3506],
-    mapsUrl: "maps://?q=Rue+Mouffetard+Paris",
+    mapsUrl: "maps://?saddr=Current+Location&daddr=48.8421,2.3506&dirflg=w",
     sections: [
       {
         label: "Roman Origins",
@@ -535,7 +536,7 @@ const stops = [
     arr: "5th arrondissement",
     theme: "The church that Gothic and Renaissance share",
     coords: [48.8462, 2.3463],
-    mapsUrl: "maps://?q=Église+Saint-Étienne-du-Mont+Paris",
+    mapsUrl: "maps://?saddr=Current+Location&daddr=48.8462,2.3463&dirflg=w",
     sections: [
       {
         label: "The Building",
@@ -557,7 +558,7 @@ const stops = [
     arr: "5th arrondissement",
     theme: "Islam and France on the edge of the Latin Quarter",
     coords: [48.8422, 2.3533],
-    mapsUrl: "maps://?q=Grande+Mosquée+de+Paris",
+    mapsUrl: "maps://?saddr=Current+Location&daddr=48.8422,2.3533&dirflg=w",
     sections: [
       {
         label: "The Building",
@@ -579,7 +580,7 @@ const stops = [
     arr: "5th arrondissement",
     theme: "The Middle Ages beneath the city",
     coords: [48.8502, 2.3441],
-    mapsUrl: "maps://?q=Musée+de+Cluny+Paris",
+    mapsUrl: "maps://?saddr=Current+Location&daddr=48.8502,2.3441&dirflg=w",
     sections: [
       {
         label: "The Site",
@@ -601,7 +602,7 @@ const stops = [
     arr: "5th arrondissement",
     theme: "The idea of the student city",
     coords: [48.8523, 2.3442],
-    mapsUrl: "maps://?q=Boulevard+Saint-Michel+Paris",
+    mapsUrl: "maps://?saddr=Current+Location&daddr=48.8523,2.3442&dirflg=w",
     sections: [
       {
         label: "The Boulevard",
@@ -623,7 +624,7 @@ const stops = [
     arr: "5th arrondissement",
     theme: "The strangest Gothic interior in Paris",
     coords: [48.8521, 2.3449],
-    mapsUrl: "maps://?q=Église+Saint-Séverin+Paris",
+    mapsUrl: "maps://?saddr=Current+Location&daddr=48.8521,2.3449&dirflg=w",
     sections: [
       {
         label: "The Building",
@@ -645,7 +646,7 @@ const stops = [
     arr: "6th arrondissement",
     theme: "The garden that belongs to everyone",
     coords: [48.8462, 2.3372],
-    mapsUrl: "maps://?q=Jardin+du+Luxembourg+Paris",
+    mapsUrl: "maps://?saddr=Current+Location&daddr=48.8462,2.3372&dirflg=w",
     sections: [
       {
         label: "The Garden",
@@ -667,7 +668,7 @@ const stops = [
     arr: "6th arrondissement",
     theme: "The church that contains a mystery and a Delacroix",
     coords: [48.8510, 2.3349],
-    mapsUrl: "maps://?q=Église+Saint-Sulpice+Paris",
+    mapsUrl: "maps://?saddr=Current+Location&daddr=48.8510,2.3349&dirflg=w",
     sections: [
       {
         label: "The Building",
@@ -689,7 +690,7 @@ const stops = [
     arr: "6th arrondissement",
     theme: "The postwar intellectual café as institution",
     coords: [48.8540, 2.3330],
-    mapsUrl: "maps://?q=Café+de+Flore+Paris",
+    mapsUrl: "maps://?saddr=Current+Location&daddr=48.8540,2.3330&dirflg=w",
     sections: [
       {
         label: "The Place",
@@ -711,7 +712,7 @@ const stops = [
     arr: "6th arrondissement",
     theme: "The oldest church in Paris",
     coords: [48.8543, 2.3330],
-    mapsUrl: "maps://?q=Église+Saint-Germain-des-Prés+Paris",
+    mapsUrl: "maps://?saddr=Current+Location&daddr=48.8543,2.3330&dirflg=w",
     sections: [
       {
         label: "The History",
@@ -733,7 +734,7 @@ const stops = [
     arr: "6th arrondissement",
     theme: "The institution that guards the French language",
     coords: [48.8556, 2.3365],
-    mapsUrl: "maps://?q=Académie+Française+Paris",
+    mapsUrl: "maps://?saddr=Current+Location&daddr=48.8556,2.3365&dirflg=w",
     sections: [
       {
         label: "The Institution",
@@ -807,8 +808,17 @@ function renderStop() {
   // Content
   renderSection();
 
-  // Maps link
+  // Maps links
   document.getElementById('maps-link').href = s.mapsUrl;
+  const nextLinkEl = document.getElementById('maps-link-next');
+  if (currentStop < stops.length - 1) {
+    const next = stops[currentStop + 1];
+    nextLinkEl.href = next.mapsUrl;
+    nextLinkEl.style.display = 'block';
+    nextLinkEl.textContent = '→ Walk to: ' + next.name;
+  } else {
+    nextLinkEl.style.display = 'none';
+  }
 
   // Nav buttons
   document.getElementById('btn-prev').disabled = currentStop === 0;
